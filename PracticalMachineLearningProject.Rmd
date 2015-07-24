@@ -1,0 +1,207 @@
+---
+title: "Weight Lifting Exercise Model for Machine Learning"
+author: "Duane Touchet"
+date: "July 24, 2015"
+output: html_document
+---
+
+## Summary
+
+For this project, I created a model of sensor data to categorize the method used in performing a weight lifting exercise, specifically, an arm curl using a dumbbell. The data was gathered by Groupware@les. The experiment is detailed at http://groupware.les.inf.puc-rio.br/har. After exploring the data in many ways, the final model used the pitch, roll, yaw, and total acceleration for each of 4 sensors, combined with the data from each sensor regarding it's x-axis, y-axis, and z-axis. The data from each sensor used was from the gyroscope, accelerometer, and magnetometer. The final model was trained using the Caret package with Random Forest on the chosen data. The model's expected out of sample error rate is calculated to be 0.44%. 
+
+## Classification
+
+The data was classified into one of 5 outcomes.
+
+- A - according to specification
+- B - throwing the elbows to the front
+- C - lifting the dumbbell only halfway
+- D - lowering the dumbbell only halfway
+- E - throwing the hips to the front
+
+## Data Gathering
+
+The data was already separated into training and testing sets. If not, I would have used 75% training and 25% testing set. The sets were downloaded with the follow code.
+
+```{r}
+# Training -> training.csv
+if (!file.exists("training.csv")) 
+     download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", "training.csv",method="curl")
+
+# Testing -> testing.csv
+if (!file.exists("testing.csv")) 
+     download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", "testing.csv",method="curl")
+```
+
+Next, I set a seed for the random variables, loaded the data into memory, and loaded any packages needed.
+
+```{r}
+set.seed(1018)
+training <- read.csv("training.csv")
+testing <- read.csv("testing.csv")
+```
+
+```{r}
+library(lattice)
+library(ggplot2)
+library(caret)
+library(randomForest)
+```
+
+
+## Exploratory Analysis
+
+With the data loaded into memory, I did some quick exploring of the full training data set. Early on, I found it to be very slow on my PC due to the size of the data. My instict was to further divide the training set into a small subset to work on and then test whether my assumptions worked for the entire set. After some experimenting, I picked 500 random samples from the training set to work on.
+
+```{r, cache=TRUE}
+data <- training[sample(nrow(training),500),]
+```
+
+At this point, I looked at the data and tried to find any features to use. I did this with multiple pair plots similar to the one below. I broke up the variables into logically grouped sections to make the plots easier to understand. To do this, I setup some global variables to help with the process.
+
+```{r}
+# Return list of columns we want to subset
+basic_belt <- c("roll_belt","pitch_belt","yaw_belt","total_accel_belt")
+gyro_belt <- c("gyros_belt_x","gyros_belt_y","gyros_belt_z")
+accel_belt <- c("accel_belt_x","accel_belt_y","accel_belt_z")
+mag_belt <- c("magnet_belt_x","magnet_belt_y","magnet_belt_z")
+col_belt <- c(basic_belt, gyro_belt, accel_belt, mag_belt)
+basic_arm <- c("roll_arm","pitch_arm","yaw_arm","total_accel_arm")
+gyro_arm <- c("gyros_arm_x","gyros_arm_y","gyros_arm_z")
+accel_arm <- c("accel_arm_x","accel_arm_y","accel_arm_z")
+mag_arm <- c("magnet_arm_x","magnet_arm_y","magnet_arm_z")
+col_arm <- c(basic_arm, gyro_arm, accel_arm, mag_arm)
+basic_forearm <- c("roll_forearm","pitch_forearm","yaw_forearm","total_accel_forearm")
+gyro_forearm <- c("gyros_forearm_x","gyros_forearm_y","gyros_forearm_z")
+accel_forearm <- c("accel_forearm_x","accel_forearm_y","accel_forearm_z")
+mag_forearm <- c("magnet_forearm_x","magnet_forearm_y","magnet_forearm_z")
+col_forearm <- c(basic_forearm, gyro_forearm, accel_forearm, mag_forearm)
+basic_dumbbell <- c("roll_dumbbell","pitch_dumbbell","yaw_dumbbell","total_accel_dumbbell")
+gyro_dumbbell <- c("gyros_dumbbell_x","gyros_dumbbell_y","gyros_dumbbell_z")
+accel_dumbbell <- c("accel_dumbbell_x","accel_dumbbell_y","accel_dumbbell_z")
+mag_dumbbell <- c("magnet_dumbbell_x","magnet_dumbbell_y","magnet_dumbbell_z")
+col_dumbbell <- c(basic_dumbbell, gyro_dumbbell, accel_dumbbell, mag_dumbbell)
+
+# Sample Pair Plot (many were created but are not included to help keep this report short)
+featurePlot(x=data[,basic_arm],y=data$classe, plot="pairs")
+```
+
+After looking at all the feature plots and reading the website of the original data collectors it seemed logical to include as much sensor data as possible as long as they don't overlap. 
+
+There were two decisions to make regarding how to approach the model building. The first was whether to put the data into a time series and use the data changes over time to predict the outcome. From a common sense view, this seems like it would be better since doing a lower half curl only should have a distinct pattern. After looking at the complexity, I put this aside and decided to try a single observation prediction if it was possible and good enough. The second decision was whether to include the user as identitiy variables. This decision came from what would seem as a bias if the learning was only valid on the 6 subjects. I put the users aside and tried to get a model that was generic enough to detect for anyone. 
+
+## Models
+
+The first model tried was all numeric data. The training would not complete due to issues with some of the data. Next, I decided a base model would be all the instant data from the four sensors, arm, forearm, belt, and dumbbell. Each sensor had pitch, roll, yaw, and total acceleration as well as x,y,z-axis data from the gyroscope, accelerometer, and magnetometer. These were stored in the colsToUse. Then smaller subset of the training data was used to test the models due to performance.
+
+```{r, cache=TRUE}
+colsToUse <- c("classe", col_belt, col_arm, col_forearm, col_dumbbell)
+subdata <- data[,colsToUse]
+```
+
+Then, I train on the data using Caret train() command with Random Forests.
+
+```{r, cache=TRUE}
+fit <- train(classe~.,data=subdata,method="rf")
+fit$finalModel
+```
+
+This model has 17% out of sample error so I tried different models. The first step was to rate each feature plot and pick only those that look like the data is easily categorized.
+The feature plots chosen are shown in the following table:
+
+```{r, cache=TRUE, echo=FALSE}
+features <- matrix(c("good","bad","good","bad",
+                     "good","bad","bad","bad",
+                     "good","good","good","good",
+                     "good","bad","bad","good"),
+                   ncol=4, byrow=TRUE)
+colnames(features) <- c("Belt","Arm","Forearm","Dumbbell")
+rownames(features) <- c("Basic","Gyro","Accel","Magnet")
+features <- as.table(features)
+```
+```{r, echo=FALSE}
+features
+```
+
+Model #2 used only these features.
+
+```{r, cache=TRUE}
+colsToUse2 <- c("classe",basic_belt,basic_forearm,gyro_belt,accel_belt,accel_arm, accel_forearm,accel_dumbbell,mag_belt, mag_dumbbell)
+subdata2 <- data[,colsToUse2]
+fit2 <- train(classe~.,data=subdata2,method="rf")
+fit2$finalModel
+```
+
+Model #3 was just basic data from each sensor.
+
+```{r, cache=TRUE}
+# Basic data only, pitch, roll, yaw, total acceleration
+colsToUse3 <- c("classe",basic_belt,basic_arm,basic_forearm,basic_dumbbell)
+subdata3 <- data[,colsToUse3]
+fit3 <- train(classe~.,data=subdata3,method="rf")
+fit3$finalModel 
+```
+
+Model #4 looked at just acceleration data.
+
+```{r, cache=TRUE}
+colsToUse4 <- c("classe",accel_belt,accel_arm,accel_forearm,accel_dumbbell)
+subdata4 <- data[,colsToUse4]
+fit4 <- train(classe~.,data=subdata4,method="rf")
+fit4$finalModel 
+```
+
+Next I looked at individual sensors to see if one of them would have a better fit. They all had higher expected errors than the base model. 
+
+```{r, cache=TRUE}
+# Model #5 - Belt data
+colsToUse5 <- c("classe",basic_belt,gyro_belt, accel_belt, mag_belt)
+subdata5 <- data[,colsToUse5]
+fit5 <- train(classe~.,data=subdata5,method="rf")
+fit5$finalModel 
+
+# Model #6 - Arm data
+colsToUse6 <- c("classe",basic_arm,gyro_arm, accel_arm, mag_arm)
+subdata6 <- data[,colsToUse6]
+fit6 <- train(classe~.,data=subdata6,method="rf")
+fit6$finalModel 
+
+# Model #7 - Forearm data
+colsToUse7 <- c("classe",basic_forearm,gyro_forearm, accel_forearm, mag_forearm)
+subdata7 <- data[,colsToUse7]
+fit7 <- train(classe~.,data=subdata7,method="rf")
+fit7$finalModel 
+
+# Model #8 - Dumbbell data
+colsToUse8 <- c("classe",basic_dumbbell,gyro_dumbbell, accel_dumbbell, mag_dumbbell)
+subdata8 <- data[,colsToUse8]
+fit8 <- train(classe~.,data=subdata8,method="rf")
+fit8$finalModel 
+```
+
+## Final Model
+
+The final model chosen was the base model with all instant data from each sensor.
+Total fitting for the final model was 6 hours on my PC.
+
+```{r, eval=FALSE}
+subtraining <- train[,colsToUse]
+totalFit <- train(classe~.,data=subtraining,method="rf")
+
+## Call:
+##  randomForest(x = x, y = y, mtry = param$mtry) 
+##               Type of random forest: classification
+##                     Number of trees: 500
+## No. of variables tried at each split: 2
+##
+##       OOB estimate of  error rate: 0.44%
+## Confusion matrix:
+##      A    B    C    D    E  class.error
+## A 5577    2    0    0    1 0.0005376344
+## B   11 3784    2    0    0 0.0034237556
+## C    0   18 3404    0    0 0.0052600818
+## D    0    0   45 3169    2 0.0146144279
+## E    0    0    0    5 3602 0.0013861935
+```
+
+The expected error rate is 0.44% which is excellent in this case. This makes sense as the data don't overlap, but we use as much sensor data as is gathered in real-time to get a complete state of the universe for the experiment.
