@@ -232,82 +232,25 @@ fit4$finalModel </code></pre>
 colsToUse5 &lt;- c(&quot;classe&quot;,basic_belt,gyro_belt, accel_belt, mag_belt)
 subdata5 &lt;- data[,colsToUse5]
 fit5 &lt;- train(classe~.,data=subdata5,method=&quot;rf&quot;)
-fit5$finalModel </code></pre>
-<pre><code>## 
-## Call:
-##  randomForest(x = x, y = y, mtry = param$mtry) 
-##                Type of random forest: classification
-##                      Number of trees: 500
-## No. of variables tried at each split: 7
-## 
-##         OOB estimate of  error rate: 29.8%
-## Confusion matrix:
-##     A  B  C  D  E class.error
-## A 106  6 11 13  4   0.2428571
-## B  16 48 14  2  2   0.4146341
-## C  18  7 66  4  2   0.3195876
-## D  17  1 11 49  4   0.4024390
-## E  10  1  2  4 82   0.1717172</code></pre>
-<pre class="r"><code># Model #6 - Arm data
+fit5$finalModel 
+
+# Model #6 - Arm data
 colsToUse6 &lt;- c(&quot;classe&quot;,basic_arm,gyro_arm, accel_arm, mag_arm)
 subdata6 &lt;- data[,colsToUse6]
 fit6 &lt;- train(classe~.,data=subdata6,method=&quot;rf&quot;)
-fit6$finalModel </code></pre>
-<pre><code>## 
-## Call:
-##  randomForest(x = x, y = y, mtry = param$mtry) 
-##                Type of random forest: classification
-##                      Number of trees: 500
-## No. of variables tried at each split: 7
-## 
-##         OOB estimate of  error rate: 47.6%
-## Confusion matrix:
-##     A  B  C  D  E class.error
-## A 100 11 12  6 11   0.2857143
-## B  14 28 22  5 13   0.6585366
-## C   9 15 48 15 10   0.5051546
-## D   6  4 21 43  8   0.4756098
-## E  12 15 19 10 43   0.5656566</code></pre>
-<pre class="r"><code># Model #7 - Forearm data
+fit6$finalModel 
+
+# Model #7 - Forearm data
 colsToUse7 &lt;- c(&quot;classe&quot;,basic_forearm,gyro_forearm, accel_forearm, mag_forearm)
 subdata7 &lt;- data[,colsToUse7]
 fit7 &lt;- train(classe~.,data=subdata7,method=&quot;rf&quot;)
-fit7$finalModel </code></pre>
-<pre><code>## 
-## Call:
-##  randomForest(x = x, y = y, mtry = param$mtry) 
-##                Type of random forest: classification
-##                      Number of trees: 500
-## No. of variables tried at each split: 7
-## 
-##         OOB estimate of  error rate: 41.8%
-## Confusion matrix:
-##     A  B  C  D  E class.error
-## A 116 10  4  5  5   0.1714286
-## B  20 24 18  2 18   0.7073171
-## C   5 14 52 15 11   0.4639175
-## D   4  4 22 45  7   0.4512195
-## E   9 15 13  8 54   0.4545455</code></pre>
-<pre class="r"><code># Model #8 - Dumbbell data
+fit7$finalModel 
+
+# Model #8 - Dumbbell data
 colsToUse8 &lt;- c(&quot;classe&quot;,basic_dumbbell,gyro_dumbbell, accel_dumbbell, mag_dumbbell)
 subdata8 &lt;- data[,colsToUse8]
 fit8 &lt;- train(classe~.,data=subdata8,method=&quot;rf&quot;)
 fit8$finalModel </code></pre>
-<pre><code>## 
-## Call:
-##  randomForest(x = x, y = y, mtry = param$mtry) 
-##                Type of random forest: classification
-##                      Number of trees: 500
-## No. of variables tried at each split: 7
-## 
-##         OOB estimate of  error rate: 33%
-## Confusion matrix:
-##     A  B  C  D  E class.error
-## A 120  3  8  6  3   0.1428571
-## B  19 30 12  4 17   0.6341463
-## C  13  6 68  3  7   0.2989691
-## D  18  3  9 48  4   0.4146341
-## E   8  6 10  6 69   0.3030303</code></pre>
 </div>
 <div id="final-model" class="section level2">
 <h2>Final Model</h2>
